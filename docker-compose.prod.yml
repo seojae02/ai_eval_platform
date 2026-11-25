@@ -4,6 +4,9 @@
 #   - 코드 폴더를 컨테이너에 연결하지 않는다(이미지에 들어 있는 코드만 실행). 업로드 파일은 storage 볼륨에
 services:
   web:
+    build:
+      args:
+        INSTALL_DEV: "0"   # 운영: 테스트 도구 제외
     command: sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn config.wsgi -b 0.0.0.0:8000 -w 3 --timeout 60"
     environment:
       DB_HOST: db
@@ -14,6 +17,9 @@ services:
       - storage:/data/storage
     restart: unless-stopped
   worker:
+    build:
+      args:
+        INSTALL_DEV: "0"   # 운영: 테스트 도구 제외
     environment:
       DB_HOST: db
       DJANGO_DEBUG: "False"

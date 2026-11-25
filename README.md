@@ -1,10 +1,13 @@
 # AI 모델 성능평가 자동화 플랫폼
 
-> **Linux에서 실행할 때:** 컨테이너는 uid 1000으로 저장소 폴더에 파일을 씁니다. `id -u` 결과가 1000이 아니면 `./dev.sh start` 전에 저장소 폴더에서 아래 명령을 한 번 실행하세요. 그러지 않으면 제출 파일을 저장하지 못할 수 있습니다. Windows·macOS의 Docker Desktop은 해당하지 않습니다.
+> **실행 전 확인 3가지**
 >
-> ```bash
-> mkdir -p storage && sudo chown 1000:1000 storage
-> ```
+> 1. **Docker가 켜져 있어야 합니다.** Windows·macOS는 Docker Desktop을 실행해 두고, Linux는 Docker 서비스가 돌고 있어야 합니다. 꺼져 있으면 `./dev.sh start`가 "Cannot connect to the Docker daemon" 같은 오류로 멈춥니다.
+> 2. **Linux이고 `id -u` 결과가 1000이 아니면**, `./dev.sh start` 전에 저장소 폴더에서 아래 명령을 한 번 실행하세요. 컨테이너는 uid 1000으로 저장소 폴더에 파일을 쓰므로, 그러지 않으면 제출 파일을 저장하지 못할 수 있습니다. Windows·macOS의 Docker Desktop은 해당하지 않습니다.
+>    ```bash
+>    mkdir -p storage && sudo chown 1000:1000 storage
+>    ```
+> 3. **8000번 포트가 비어 있어야 합니다.** 다른 프로그램이 쓰고 있으면 web 컨테이너가 뜨지 않습니다.
 
 ## 예시 계정 (로컬 시연용)
 

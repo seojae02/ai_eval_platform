@@ -1,0 +1,40 @@
+# 이 파일을 비우거나 지우지 않는다. 비면 .env·PDF·업로드 파일이 그대로 git에 올라간다(2026-11-22 사고).
+
+# 대회 배포 자료(PDF)는 저장소에 올리지 않는다 — 운영계획에 연락처 포함, 재배포 불필요
+docs/*.pdf
+
+# 비밀 정보: 값이 든 .env는 올리지 않고 .env.example만 올린다
+.env
+.env.*
+!.env.example
+# ./dev.sh demo 가 만든 데모 계정 비밀번호
+.demo_password
+
+# 업로드·채점 데이터(참여자 제출물, 정답 파일)
+storage/
+media/
+
+# PC마다 다른 compose 설정(맥 전용 설정 등)은 이 파일에 둔다
+docker-compose.override.yml
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Django
+staticfiles/
+*.sqlite3
+
+# 편집기·OS
+.vscode/
+.idea/
+.DS_Store
+
+# DB·업로드 파일 백업(비밀번호 해시·제출 기록이 들어 있음, README "서비스 장애 시 대책")
+backup.sql
+storage-backup.tgz

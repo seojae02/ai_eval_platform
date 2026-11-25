@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{# 오류 화면: 원인·경로·코드 같은 내부 정보는 보여 주지 않는다(DEBUG=False일 때 쓰임) [RFP 7쪽] #}
+{% block title %}권한이 없습니다{% endblock %}
+{% block content %}
+<h1>권한이 없습니다</h1>
+<p>이 화면이나 기능을 쓸 권한이 없습니다<br>역할(참여자, 관리자1, 관리자2)을 확인해 주세요</p>
+<p><a class="btn" href="{% url 'home' %}">처음 화면으로</a></p>
+{% endblock %}

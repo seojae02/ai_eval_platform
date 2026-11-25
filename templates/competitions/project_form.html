@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<nav class="crumbs"><a href="{% url 'home' %}">내 대회</a><span class="sep">›</span><a href="{% url 'competitions:detail' competition.pk %}">{{ competition.name }}</a><span class="sep">›</span><span>{{ title }}</span></nav>
+<div class="page-head"><h1>{{ title }}</h1></div>
+<section class="card form-card">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {{ form.as_div }}
+    <div class="actions"><button type="submit">저장</button>
+      <a class="btn secondary" href="{% url 'competitions:detail' competition.pk %}">취소</a></div>
+  </form>
+</section>
+{% endblock %}

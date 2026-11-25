@@ -1,0 +1,13 @@
+{
+  "cheat_copied_csv": "부정: 노트북은 결정 트리로 자기 예측을 만들지만, 제출한 pred.csv는 honest_forest_features의 pred.csv를 그대로 복사한 것.",
+  "cheat_edited_output": "부정: 정상으로 실행한 뒤 노트북의 Scores/Mean 출력 칸만 손으로 고쳐 점수를 3%p 높게 보이게 했다. 예측 CSV와 모델 파일은 자기 노트북 결과 그대로.",
+  "cheat_excel_edit": "부정: 노트북은 로지스틱 회귀로 정상 실행했다. 노트북이 찍은 '자신 없는 id' 20개의 그림을 눈으로 보고, 저장된 submission.csv를 엑셀에서 열어 그 행의 라벨을 고쳐 제출했다(노트북 밖에서 CSV 일부 수정). 모델 파일은 노트북 결과 그대로.",
+  "cheat_hand_labels": "부정: 랜덤 포레스트로 예측한 뒤, 모델이 자신 없어 한 test 그림 20장을 눈으로 보고 읽은 숫자를 노트북 코드(fixes = {id: 숫자})에 적어 예측을 덮어썼다(노트북 안에서 CSV 일부 직접 기입). 다시 실행해도 같은 CSV가 나온다. 모델 파일은 고치기 전 랜덤 포레스트.",
+  "cheat_original_lookup": "부정: 노트북 안에서 sklearn.datasets.load_digits()를 불러 test 행의 정답을 찾아 제출한다. 모델 파일은 따로 학습한 KNN.",
+  "cheat_pasted_column": "부정: 노트북은 배깅 모델로 교차검증·학습·모델 저장을 하지만, 제출 예측은 다른 컴퓨터에서 돌린 신경망 결과(이 대회에 제출되지 않은 것)를 엑셀 열에서 복사해 문자열로 붙여 넣은 것이다(모델 없이 CSV 생성, 직접 기입). 다시 실행해도 같은 CSV가 나온다.",
+  "cheat_typed_mean": "부정: 교차검증은 계산하지만 평균은 print('Mean: 0.9900')처럼 숫자로 적어 출력했다. 예측 CSV와 모델 파일은 자기 노트북 결과 그대로.",
+  "honest_forest_features": "정석: 행 합·열 합 16개 특성을 파이프라인 안에서 더하고 랜덤 포레스트로 10-fold CV.",
+  "honest_sgd": "정석: PDF 그대로 SGDClassifier(max_iter=5, random_state=42)를 10-fold CV(PDF의 tol=-np.inf는 지금 scikit-learn에서 오류라 같은 뜻인 tol=None). 점수 배열과 np.mean(...)만 셀 결과로 보여 준다(Mean: 줄 없음).",
+  "honest_svc_pipeline": "정석: StandardScaler+SVC 파이프라인으로 10-fold CV, cross_val_predict로 혼동 행렬.",
+  "mistake_pca": "실수(모르고 한 것): 교차검증 전에 PCA를 전체 학습 데이터에 맞췄다(PDF가 금지한 PCA이기도 하다). 최종 모델은 PCA+KNN 파이프라인."
+}

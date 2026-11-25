@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}제출 #{{ submission.pk }} 업로드{% endblock %}
+{% block content %}
+<nav class="crumbs"><a href="{% url 'home' %}">내 대회</a><span class="sep">›</span><a href="{% url 'competitions:project_detail' project.competition_id project.pk %}">{{ project.name }}</a><span class="sep">›</span><span>파일 올리기</span></nav>
+<div class="page-head"><div><h1>파일 올리기</h1><p>제출 #{{ submission.pk }}</p></div></div>
+
+<div class="cols">
+{# 자바스크립트는 우리 서버의 파일(static/js/upload.js)만 쓴다. 페이지 안에 스크립트를 쓰지 않는다(CSP) #}
+<form id="upload-form" class="card" method="post"
+      action="{% url 'submissions:complete' project.competition_id project.pk submission.pk %}"
+      data-chunk-url="{% url 'submissions:chunk' project.competition_id project.pk submission.pk %}"
+      data-chunk-size="{{ chunk_size }}">
+  {% csrf_token %}
+  <h2>파일 3개를 모두 선택하세요</h2>
+  {% for k in kinds %}
+  <div>
+    <label for="file-{{ k.kind }}">{{ k.label }} <span class="helptext">최대 {{ k.max_mb }}MB, {{ k.accept }}</span></label>
+    {# name 속성을 일부러 넣지 않는다 → '제출 완료' 폼에 파일이 다시 실려 가지 않는다(조각으로 이미 보냄) #}
+    <input type="file" id="file-{{ k.kind }}" data-kind="{{ k.kind }}" accept="{{ k.accept }}">
+    <progress id="progress-{{ k.kind }}" max="100" value="0"></progress>
+  </div>
+  {% endfor %}
+  <p id="upload-status" class="error" role="status"></p>
+  <button type="submit">올리고 제출 완료</button>
+</form>
+
+<aside>
+  <section class="card">
+    <h2>이 제출</h2>
+    <dl class="kv">
+      <dt>시작 시각</dt><dd>{{ submission.started_at|date:"Y-m-d H:i:s" }}<span class="sub">마감 판정 기준</span></dd>
+      <dt>구간</dt><dd>{% if submission.deadline %}{{ submission.deadline.due_at|date:"Y-m-d H:i" }} 마감{% else %}마감 후 접수(채점 안 함){% endif %}</dd>
+    </dl>
+    <p class="helptext">{{ idle_minutes }}분 동안 전송이 없으면 만료됩니다<br>전송 중에는 시간이 걸려도 만료되지 않습니다</p>
+  </section>
+  <form method="post" action="{% url 'submissions:cancel' project.competition_id project.pk submission.pk %}">
+    {% csrf_token %}
+    <button type="submit" class="secondary">업로드 취소 (횟수 1회 돌려받기)</button>
+  </form>
+</aside>
+</div>
+<noscript><p class="notice error">파일을 조각으로 보내려면 자바스크립트가 필요합니다</p></noscript>
+<script src="{% static 'js/upload.js' %}"></script>
+{% endblock %}

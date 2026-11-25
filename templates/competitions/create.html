@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}대회 개설{% endblock %}
+{% block main_class %}narrow{% endblock %}
+{% block content %}
+<nav class="crumbs"><a href="{% url 'home' %}">전체 대회</a><span class="sep">›</span><span>대회 개설</span></nav>
+<section class="card auth-card">
+  <h1>대회 개설</h1>
+  <p class="helptext">대회를 만들면 참여 코드가 자동으로 생성됩니다</p>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {{ form.as_div }}
+    <button type="submit">개설</button>
+  </form>
+</section>
+{% endblock %}

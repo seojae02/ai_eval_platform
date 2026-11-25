@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{# 오류 화면: 원인·경로·코드 같은 내부 정보는 보여 주지 않는다(DEBUG=False일 때 쓰임) [RFP 7쪽] #}
+{% block title %}잘못된 요청{% endblock %}
+{% block content %}
+<h1>잘못된 요청</h1>
+<p>요청을 처리할 수 없습니다<br>주소나 입력을 확인해 주세요</p>
+<p><a class="btn" href="{% url 'home' %}">처음 화면으로</a></p>
+{% endblock %}

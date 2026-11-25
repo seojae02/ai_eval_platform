@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}내 대회{% endblock %}
+{% block content %}
+{% if user.is_admin2 %}
+  <div class="page-head">
+    <div><h1>전체 대회</h1><p>개설한 대회를 관리합니다</p></div>
+    <div class="actions"><a class="btn" href="{% url 'competitions:create' %}">+ 대회 개설</a></div>
+  </div>
+  {% if competitions %}
+  <div class="grid">
+    {% for c in competitions %}
+      <a class="tile" href="{% url 'competitions:detail' c.pk %}">
+        <h3>{{ c.name }}</h3>
+        <p>회원 {{ c.member_count }}명 <span class="sep">|</span> {{ c.created_at|date:"Y-m-d" }} 개설</p>
+      </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <section class="card empty">개설된 대회가 없습니다<br><a class="btn" href="{% url 'competitions:create' %}">첫 대회 개설하기</a></section>
+  {% endif %}
+{% else %}
+  <div class="page-head">
+    <div><h1>내 대회</h1><p>참여 중인 대회를 선택하세요</p></div>
+    <div class="actions"><a class="btn secondary" href="{% url 'join' %}">+ 참여 코드로 대회 추가</a></div>
+  </div>
+  {% if memberships %}
+  <div class="grid">
+    {% for m in memberships %}
+      {% if m.is_active %}<a class="tile" href="{% url 'competitions:detail' m.competition.pk %}">{% else %}<div class="tile">{% endif %}
+        <h3>{{ m.competition.name }}</h3>
+        <p>{{ m.get_role_display }}{% if not m.is_active %} (해제됨){% endif %}{% if m.role == "participant" %} <span class="sep">|</span> 리더보드 이름 {{ m.alias }}{% endif %}</p>
+      {% if m.is_active %}</a>{% else %}</div>{% endif %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <section class="card empty">참여 중인 대회가 없습니다<br><a class="btn" href="{% url 'join' %}">참여 코드 입력하기</a></section>
+  {% endif %}
+{% endif %}
+{% endblock %}

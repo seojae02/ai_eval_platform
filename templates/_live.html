@@ -1,0 +1,15 @@
+{% comment %}
+이 화면이 기다리는 작업을 live.js에 알려 주는 보이지 않는 표시. include 때 넘기는 값:
+   mode   alert(끝나면 알림) | progress(진행 화면 갱신) | board(리더보드가 바뀌면 알림)
+   ids    기다릴 제출 번호 목록, watch  score | verify, board  리더보드 비교값, report_url  진행 화면 완료 후 이동할 곳
+   기다릴 것이 없으면 아무것도 그리지 않는다 → live.js도 아무것도 하지 않는다
+주의: {# #}는 한 줄 주석이다. 여러 줄이면 화면에 글자로 나오므로 이 블록을 쓴다.
+{% endcomment %}
+{% if mode == "board" or ids %}
+<div id="live" hidden
+     data-mode="{{ mode }}"
+     data-url="{% url 'submissions:status' competition.pk project.pk %}?watch={{ watch|default:'score' }}{% if mode == 'progress' %}&amp;detail=1{% endif %}{% if mode == 'board' %}&amp;board=1{% endif %}"
+     data-ids="{{ ids|join:',' }}"
+     {% if board %}data-board="{{ board }}"{% endif %}
+     {% if report_url %}data-report-url="{{ report_url }}"{% endif %}></div>
+{% endif %}

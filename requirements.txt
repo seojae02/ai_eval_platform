@@ -1,0 +1,11 @@
+# 2026-11-19 첫 빌드에서 실제 설치·검증된 버전으로 고정
+Django==6.0.10
+psycopg[binary]==3.3.9
+argon2-cffi==25.1.0
+# 제출 노트북(.ipynb) 구조 검사(Jupyter 공식 스키마). 실행은 하지 않는다.
+nbformat==5.10.4
+# worker → docker-socket-proxy → 샌드박스 컨테이너 생성·실행·삭제 (2026-11-21 설치·검증)
+docker==7.2.0
+# 운영: 정적 파일 서빙(DEBUG=False), WSGI 서버
+whitenoise==6.12.0
+gunicorn==27.0.1

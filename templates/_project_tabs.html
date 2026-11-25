@@ -1,0 +1,22 @@
+{# 과제 화면 공통 머리: 경로 + 제목 + 탭. include 때 active와 staff를 넘긴다 #}
+<nav class="crumbs" aria-label="경로">
+  <a href="{% url 'home' %}">내 대회</a><span class="sep">›</span>
+  <a href="{% url 'competitions:detail' competition.pk %}">{{ competition.name }}</a><span class="sep">›</span>
+  <span>{{ project.name }}</span>
+</nav>
+<div class="page-head">
+  <div>
+    <h1>{{ project.name }}</h1>
+    <p>{{ project.get_metric_display }}, {{ project.get_direction_display }}</p>
+  </div>
+  {% if user.is_admin2 and active == "overview" %}<div class="actions"><a class="btn secondary" href="{% url 'competitions:project_edit' competition.pk project.pk %}">설정 변경</a></div>{% endif %}
+</div>
+<nav class="tabs" aria-label="과제 메뉴">
+  <a href="{% url 'competitions:project_detail' competition.pk project.pk %}"{% if active == "overview" %} class="active" aria-current="page"{% endif %}>개요</a>
+  <a href="{% url 'submissions:leaderboard' competition.pk project.pk %}"{% if active == "leaderboard" %} class="active" aria-current="page"{% endif %}>리더보드</a>
+  {% if staff %}
+  <a href="{% url 'submissions:review_queue' competition.pk project.pk %}"{% if active == "review" %} class="active" aria-current="page"{% endif %}>검토</a>
+  <a href="{% url 'submissions:admin_list' competition.pk project.pk %}"{% if active == "submissions" %} class="active" aria-current="page"{% endif %}>제출 목록</a>
+  <a href="{% url 'submissions:results' competition.pk project.pk %}"{% if active == "results" %} class="active" aria-current="page"{% endif %}>최종 성적</a>
+  {% endif %}
+</nav>

@@ -1,0 +1,26 @@
+# 운영(시연 서버)용 덧붙임 파일:  docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#   - runserver 대신 gunicorn, DEBUG 끔, 정적 파일은 collectstatic + whitenoise
+#   - HTTPS는 앞단 리버스 프록시(Caddy·nginx 등)가 처리하고 DJANGO_HTTPS=True로 보안 헤더를 켠다
+#   - 코드 폴더를 컨테이너에 연결하지 않는다(이미지에 들어 있는 코드만 실행). 업로드 파일은 storage 볼륨에
+services:
+  web:
+    command: sh -c "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn config.wsgi -b 0.0.0.0:8000 -w 3 --timeout 60"
+    environment:
+      DB_HOST: db
+      DJANGO_DEBUG: "False"
+      DJANGO_HTTPS: ${DJANGO_HTTPS:-False}
+      STORAGE_ROOT: /data/storage
+    volumes: !reset
+      - storage:/data/storage
+    restart: unless-stopped
+  worker:
+    environment:
+      DB_HOST: db
+      DJANGO_DEBUG: "False"
+      STORAGE_ROOT: /data/storage
+      SANDBOX_DOCKER_URL: tcp://docker-proxy:2375
+    volumes: !reset
+      - storage:/data/storage
+
+volumes:
+  storage:

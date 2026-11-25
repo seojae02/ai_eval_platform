@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}회원 관리 | {{ competition.name }}{% endblock %}
+{% block content %}
+<nav class="crumbs"><a href="{% url 'home' %}">내 대회</a><span class="sep">›</span><a href="{% url 'competitions:detail' competition.pk %}">{{ competition.name }}</a><span class="sep">›</span><span>회원 관리</span></nav>
+<div class="page-head"><div><h1>회원 관리</h1><p>실명이 보이는 관리자 전용 화면입니다. 여기서 한 일은 모두 감사 로그에 남습니다</p></div></div>
+
+<form method="get" class="inline-form" role="search">
+  <input type="search" name="q" value="{{ q }}" placeholder="실명·학번·아이디·별칭 검색" aria-label="회원 검색">
+  <button type="submit" class="secondary small">검색</button>
+  {% if q %}<a class="btn secondary small" href="{% url 'competitions:members' competition.pk %}">전체 보기</a>{% endif %}
+</form>
+
+<section class="card">
+<div class="table-wrap">
+<table>
+  <thead><tr><th>실명</th><th>학번</th><th>아이디</th><th>역할</th><th>익명 별칭</th><th class="num">제출</th><th>마지막 로그인</th><th>상태</th><th></th></tr></thead>
+  <tbody>
+  {% for m in rows %}
+    <tr>
+      <td>{{ m.user.real_name }}</td>
+      <td>{{ m.user.student_id|default:"-" }}</td>
+      <td>{{ m.user.username }}</td>
+      <td>{{ m.get_role_display }}</td>
+      <td>{% if m.role == "participant" %}{{ m.alias }}{% else %}-{% endif %}</td>
+      <td class="num">{{ m.submission_count }}</td>
+      <td>{{ m.user.last_login|date:"m-d H:i"|default:"-" }}</td>
+      <td>
+        {% if not m.is_active %}<span class="lv lv-unknown">{% if m.role == "participant" %}정지됨{% else %}해제됨{% endif %}</span>
+        {% else %}<span class="lv lv-ok">활성</span>{% endif %}
+        {% if m.locked %}<span class="lv lv-warn">로그인 잠김</span>{% endif %}
+        {% if m.user.must_change_password %}<span class="lv lv-warn">임시 비밀번호</span>{% endif %}
+      </td>
+      <td class="num"><div class="actions">
+        {% if m.locked %}
+          <form method="post" action="{% url 'competitions:member_unlock' competition.pk m.pk %}">
+            {% csrf_token %}<button type="submit" class="secondary small">잠금 풀기</button></form>
+        {% endif %}
+        {% if m.can_reset %}
+          <form method="post" action="{% url 'competitions:member_reset_password' competition.pk m.pk %}">
+            {% csrf_token %}<button type="submit" class="secondary small">임시 비밀번호</button></form>
+        {% endif %}
+        {% if user.is_admin2 %}
+          {% if m.role == "participant" %}
+            {% if m.is_active %}
+              <form method="post" action="{% url 'competitions:promote' competition.pk m.pk %}">
+                {% csrf_token %}<button type="submit" class="secondary small">관리자1로 지정</button></form>
+              <form method="post" action="{% url 'competitions:member_suspend' competition.pk m.pk %}">
+                {% csrf_token %}<button type="submit" class="danger small">참가 정지</button></form>
+            {% else %}
+              <form method="post" action="{% url 'competitions:member_reinstate' competition.pk m.pk %}">
+                {% csrf_token %}<button type="submit" class="secondary small">정지 해제</button></form>
+            {% endif %}
+          {% elif m.is_active %}
+            <form method="post" action="{% url 'competitions:revoke' competition.pk m.pk %}">
+              {% csrf_token %}<button type="submit" class="danger small">관리자1 해제</button></form>
+          {% else %}
+            <form method="post" action="{% url 'competitions:promote' competition.pk m.pk %}">
+              {% csrf_token %}<button type="submit" class="secondary small">다시 지정</button></form>
+          {% endif %}
+        {% endif %}
+      </div></td>
+    </tr>
+  {% empty %}
+    <tr><td colspan="9" class="empty">{% if q %}'{{ q }}'에 맞는 회원이 없습니다{% else %}아직 회원이 없습니다{% endif %}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+</section>
+
+<section class="card">
+  <h2>버튼 안내</h2>
+  <dl class="kv">
+    <dt>잠금 풀기</dt><dd>비밀번호를 5번 틀려 10분 잠긴 계정을 바로 풉니다</dd>
+    <dt>임시 비밀번호</dt><dd>비밀번호를 잊은 회원에게 임시 비밀번호를 발급합니다. 화면에 한 번만 보이고, 회원은 다음 로그인 때 새 비밀번호로 바꿔야 합니다{% if not user.is_admin2 %}. 관리자1은 어느 대회에서도 관리자가 아닌 참여자에게만 발급할 수 있습니다{% endif %}</dd>
+    {% if user.is_admin2 %}
+    <dt>참가 정지</dt><dd>이 대회에 들어오거나 제출할 수 없게 합니다. 제출 기록과 점수는 남습니다(성적에서 빼려면 검토에서 '부적합'으로 결정)</dd>
+    <dt>관리자1 해제</dt><dd>참여자로 돌아가지 않고 '해제됨'이 됩니다(정답을 본 사람이 같은 대회에 제출하지 못하게)</dd>
+    {% endif %}
+  </dl>
+</section>
+{% endblock %}

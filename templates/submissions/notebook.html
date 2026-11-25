@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}제출 #{{ s.pk }} 노트북{% endblock %}
+{% block content %}
+<nav class="crumbs" aria-label="경로">
+  <a href="{% url 'submissions:review_queue' competition.pk project.pk %}">{{ project.name }} 검토</a><span class="sep">›</span>
+  <a href="{% url 'submissions:review_detail' competition.pk project.pk s.pk %}">제출 #{{ s.pk }}</a><span class="sep">›</span>
+  <span>노트북</span>
+</nav>
+<div class="page-head"><div><h1>제출 #{{ s.pk }} 노트북</h1>
+  <p>실행 번호 [n]은 참여자가 실행한 순서입니다</p></div></div>
+<p class="notice">안전 표시: 코드와 마크다운은 글자 그대로, 출력은 텍스트와 PNG/JPEG 그림만 보여 주며 HTML, 자바스크립트, 위젯 출력은 그리지 않습니다</p>
+<section class="card">
+{% for c in cells %}
+<div class="nb-cell nb-{{ c.type }}">
+  {% if c.type == "code" %}<div class="nb-count">[{{ c.count|default_if_none:" " }}]</div>{% endif %}
+  <pre class="nb-source">{{ c.source }}</pre>
+  {% for o in c.outputs %}
+    {% if o.kind == "image" %}<img class="nb-image" src="{{ o.src }}" alt="노트북 출력 그림">
+    {% else %}<pre class="nb-output nb-{{ o.kind }}">{{ o.text }}</pre>{% endif %}
+  {% endfor %}
+</div>
+{% empty %}
+<p class="empty">표시할 셀이 없습니다</p>
+{% endfor %}
+</section>
+{% endblock %}

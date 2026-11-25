@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }} 리더보드{% endblock %}
+{% block content %}
+{% include "_project_tabs.html" with active="leaderboard" staff=show_real_name %}
+{% include "_live.html" with mode="board" board=board_version %}
+
+{% if final %}<p class="notice ok"><strong>최종 확정</strong> 모든 대표 기록의 검토가 끝나 성적이 확정되었습니다</p>{% endif %}
+
+<section class="card">
+  <div class="card-head">
+    <h2>순위</h2>
+    {% if show_real_name %}<span class="lv lv-unknown">관리자 화면: 실명 표시</span>{% endif %}
+  </div>
+  {% if entries %}
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>순위</th><th>참여자</th>{% if show_real_name %}<th>실명</th><th>아이디</th>{% endif %}
+        <th class="num">점수</th><th>검증 상태</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for e in entries %}
+      <tr{% if e.member.pk == my_member_id %} class="mine"{% endif %}>
+        <td class="rank">{{ e.rank }}</td>
+        <td>{{ e.member.alias }}{% if e.member.pk == my_member_id %} <strong>(나)</strong>{% endif %}</td>
+        {% if show_real_name %}<td>{{ e.member.user.real_name }}</td><td>{{ e.member.user.username }}</td>{% endif %}
+        <td class="num"><strong>{{ e.score_text }}</strong></td>
+        <td>{% if show_real_name %}{{ e.submission.get_review_status_display }}{% else %}{{ e.submission.public_review_label }}{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p class="empty">아직 채점된 제출이 없습니다</p>
+  {% endif %}
+</section>
+<ul class="helptext">
+  <li>참여자마다 가장 좋은 점수 1개를 보여 줍니다</li>
+  <li>점수는 소수 4자리로 비교하고, 같으면 공동 순위입니다</li>
+  <li>아직 검증하지 않은 기록도 포함하고 상태를 함께 표시합니다</li>
+  {% if show_real_name %}<li>참여자 화면에는 익명 별칭만 보입니다</li>{% endif %}
+</ul>
+{% endblock %}

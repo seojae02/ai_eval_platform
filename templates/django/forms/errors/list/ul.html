@@ -1,0 +1,1 @@
+{% load ui %}{% if errors %}<ul class="{{ error_class }}"{% if errors.field_id %} id="{{ errors.field_id }}_error"{% endif %}>{% for error in errors %}<li>{{ error|nodot }}</li>{% endfor %}</ul>{% endif %}

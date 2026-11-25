@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}제출 #{{ s.pk }} 검증 진행{% endblock %}
+{% block content %}
+{% include "_project_tabs.html" with active="review" staff=True %}
+<section class="card">
+  <div class="card-head">
+    <h2>제출 #{{ s.pk }} 검증 진행</h2>
+    <span class="helptext">{{ s.member.user.real_name }} ({{ s.member.alias }}){% if s.score is not None %}, 점수 {{ s.score|floatformat:4 }}{% endif %}</span>
+  </div>
+  <p id="live-headline" class="progress-headline">{{ item.headline }}</p>
+  <ol class="steps">
+    {% for st in item.steps %}
+      <li class="step {{ st.state }}" data-step="{{ st.key }}">
+        <span class="step-label">{{ forloop.counter }}. {{ st.label }}</span>
+        <span class="step-time">{% if st.seconds is not None %}{{ st.seconds }}초{% endif %}</span>
+      </li>
+    {% endfor %}
+  </ol>
+  {# 샌드박스 단계에서만: '예상 시간'이 아니라 '제한까지 쓴 시간' #}
+  <div id="live-limit" class="limit-bar"{% if not item.limit %} hidden{% endif %}>
+    <progress id="live-bar" max="{{ item.limit|default:1 }}" value="{{ item.elapsed|default:0 }}"></progress>
+    <span id="live-bar-text" class="helptext">{{ item.elapsed|default:0 }}초 / 제한 {{ item.limit|default:0 }}초</span>
+  </div>
+  <p class="helptext">이 화면은 3초마다 저절로 갱신됩니다. 노트북 실행 중의 셀 출력은 보여 주지 않습니다(결과 위조를 막으려고 샌드박스가 출력을 버림)</p>
+  <div class="actions"><a class="btn secondary" href="{% url 'submissions:review_detail' competition.pk project.pk s.pk %}">리포트 보기</a></div>
+</section>
+{% url 'submissions:review_detail' competition.pk project.pk s.pk as report_url %}
+{% if not item.done %}{% include "_live.html" with mode="progress" ids=live_ids watch="verify" report_url=report_url %}{% endif %}
+{% endblock %}

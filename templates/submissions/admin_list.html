@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }} 제출 목록{% endblock %}
+{% block content %}
+{% include "_project_tabs.html" with active="submissions" staff=True %}
+{% include "_live.html" with mode="alert" ids=live_ids watch="verify" %}
+<section class="card">
+  <div class="card-head"><h2>전체 제출</h2><span class="helptext">모든 상태, 최근 500건</span>
+    {% if method_only %}<a class="btn secondary small" href="?">전체 보기</a>{% else %}<a class="btn secondary small" href="?method=warn">방법 점검 주의만</a>{% endif %}</div>
+  {% if submissions %}
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>번호</th><th>시작 시각</th><th>참여자</th><th>상태</th><th class="num">점수</th><th>검증</th><th>방법 점검</th><th>검토</th><th>파일</th></tr></thead>
+    <tbody>
+    {% for s in submissions %}
+      <tr>
+        <td><a href="{% url 'submissions:review_detail' competition.pk project.pk s.pk %}">#{{ s.pk }}</a></td>
+        <td>{{ s.started_at|date:"m-d H:i:s" }}</td>
+        <td>{{ s.member.user.real_name }} <span class="sub">{{ s.member.user.username }}, {{ s.member.alias }}</span></td>
+        <td>{{ s.get_status_display }}</td>
+        <td class="num">{{ s.score_text }}</td>
+        <td>{% with r=s.verification %}{% if r %}<span class="lv lv-{{ r.level }}">{{ r.get_level_display }}</span>{% else %}-{% endif %}{% endwith %}</td>
+        <td>{% with m=s.verification.checks.v7 %}{% if m and m.level != "ok" %}<span class="lv lv-{{ m.level }}">{% if m.level == "warn" %}주의{% else %}판정 불가{% endif %}</span>{% elif m %}<span class="sub">문제 없음</span>{% else %}-{% endif %}{% endwith %}</td>
+        <td>{% if s.status == "scored" %}{{ s.get_review_status_display }}{% else %}-{% endif %}</td>
+        <td class="file-links">
+          {% for f in s.files.all %}
+            {% if f.purged_at %}<span class="helptext">{{ f.get_kind_display }} 정리됨</span>
+            {% else %}<a href="{% url 'submissions:review_file' competition.pk project.pk s.pk f.kind %}" title="{{ f.original_name }}">{% if f.kind == "csv" %}CSV{% elif f.kind == "notebook" %}노트북{% else %}모델{% endif %}</a>
+              {% if f.kind == "notebook" %}<a href="{% url 'submissions:review_notebook' competition.pk project.pk s.pk %}">노트북 보기</a>{% endif %}
+            {% endif %}
+          {% empty %}<span class="helptext">파일 없음</span>
+          {% endfor %}
+          <a class="btn secondary small" href="{% url 'submissions:review_detail' competition.pk project.pk s.pk %}">상세</a>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p class="empty">{% if method_only %}방법 점검 주의인 제출이 없습니다{% else %}아직 제출이 없습니다{% endif %}</p>
+  {% endif %}
+</section>
+<p class="helptext">검토는 '채점됨'인 제출만 할 수 있습니다<br>검토가 끝난 제출도 여기서 파일과 상세(검증 리포트, 검토 이력)를 다시 열 수 있습니다, 파일은 내려받기만 되고 모델 파일을 직접 로드하지 마세요</p>
+{% endblock %}

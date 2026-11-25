@@ -1,0 +1,43 @@
+{% load static ui %}<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}AI 모델 평가 플랫폼{% endblock %}</title>
+  {# 외부 CDN 없이 우리 서버의 CSS만 쓴다 → CSP를 엄격하게 걸 수 있다 #}
+  <link rel="stylesheet" href="{% static 'css/base.css' %}">
+  {# 완료 알림·진행 화면. 화면에 #live 표시가 없으면 아무것도 하지 않는다 #}
+  <script src="{% static 'js/live.js' %}" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="{% url 'home' %}"><span class="brand-mark" aria-hidden="true"></span>AI 모델 평가 플랫폼</a>
+      <nav class="topnav" aria-label="계정">
+        {% if user.is_authenticated %}
+          <span class="user-chip">{{ user.real_name }}{% if user.is_admin2 %}<span class="role-tag">관리자2</span>{% endif %}</span>
+          {% if not user.is_admin2 %}<a class="btn secondary small" href="{% url 'join' %}">대회 추가</a>{% endif %}
+          <a class="btn secondary small" href="{% url 'password_change' %}">비밀번호 변경</a>
+          {# 로그아웃은 링크(GET)가 아니라 폼(POST) + CSRF 토큰 #}
+          <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="secondary small">로그아웃</button>
+          </form>
+        {% else %}
+          <a class="btn secondary small" href="{% url 'login' %}">로그인</a>
+          <a class="btn small" href="{% url 'signup' %}">회원가입</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+  <main class="{% block main_class %}{% endblock %}">
+    {# 채점·검증이 끝나면 live.js가 여기에 알림을 띄운다(화면 낭독기도 읽음). 평소에는 숨김 #}
+    <div id="live-banner" class="live-banner" role="status" aria-live="polite" hidden></div>
+    {% if messages %}
+      <ul class="messages">{% for m in messages %}<li class="{{ m.tags }}">{{ m|nodot }}</li>{% endfor %}</ul>
+    {% endif %}
+    {% if locked %}<p class="notice error">{{ locked|nodot }}</p>{% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

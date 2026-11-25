@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}{{ competition.name }}{% endblock %}
+{% block content %}
+<nav class="crumbs"><a href="{% url 'home' %}">내 대회</a><span class="sep">›</span><span>{{ competition.name }}</span></nav>
+<div class="page-head">
+  <div>
+    <h1>{{ competition.name }}</h1>
+    {% if not is_staff %}<p>리더보드에서 내 이름은 <strong>{{ membership.alias }}</strong>로 표시됩니다</p>{% endif %}
+  </div>
+  {% if is_staff %}<div class="actions"><a class="btn secondary" href="{% url 'competitions:members' competition.pk %}">회원 관리</a></div>{% endif %}
+</div>
+
+<div class="{% if is_staff %}cols{% endif %}">
+  <section>
+    <div class="card-head">
+      <h2>과제</h2>
+      {% if user.is_admin2 %}<a class="btn small" href="{% url 'competitions:project_create' competition.pk %}">+ 과제 추가</a>{% endif %}
+    </div>
+    {% if projects %}
+    <div class="grid">
+      {% for p in projects %}
+        <a class="tile" href="{% url 'competitions:project_detail' competition.pk p.pk %}">
+          <h3>{{ p.name }}</h3>
+          <p>{{ p.get_metric_display }} <span class="sep">|</span> {{ p.get_direction_display }}</p>
+        </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="card empty">아직 과제가 없습니다</div>
+    {% endif %}
+  </section>
+
+  {% if is_staff %}
+  <section class="card">
+    <h2>참여 코드</h2>
+    <p class="code">{{ competition.display_code }}</p>
+    <ul class="helptext">
+      <li>참여자와 관리자1에게 공유하세요</li>
+      <li>이 코드로 가입하면 항상 <strong>참여자</strong>가 됩니다</li>
+      <li>관리자1은 관리자2가 회원 목록에서 지정합니다</li>
+    </ul>
+    {% if user.is_admin2 %}
+      <form method="post" action="{% url 'competitions:reissue_code' competition.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="secondary small">코드 재발급</button>
+        <p class="helptext">옛 코드는 즉시 무효가 되고, 이미 가입한 사람은 영향이 없습니다</p>
+      </form>
+    {% endif %}
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

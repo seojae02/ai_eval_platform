@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% load ui %}
+{% block title %}{{ project.name }}{% endblock %}
+{% block content %}
+{% include "_project_tabs.html" with active="overview" staff=is_staff %}
+{% if project.description %}<p class="helptext">{{ project.description|linebreaksbr }}</p>{% endif %}
+
+<div class="cols">
+<div>
+  {% if start_form %}
+  <section class="card">
+    <div class="card-head"><h2>제출</h2></div>
+    {% if usage %}
+      {# R5: 사용 횟수와 남은 횟수. '업로드 중'인 제출도 1회로 잡혀 있다 #}
+      <div class="stats">
+        <div class="stat"><div class="label">남은 횟수</div><div class="value">{{ usage.remaining }}<small> / {{ usage.limit }}회</small></div></div>
+        <div class="stat"><div class="label">이번 마감</div><div class="value"><small>{{ usage.deadline.due_at|date:"m월 d일 H:i" }}</small></div></div>
+      </div>
+      <p class="helptext"><strong>사용 {{ usage.used }} / 남은 {{ usage.remaining }}</strong> (제한 {{ usage.limit }}회) <span class="sep">|</span> 업로드 중인 제출도 1회로 잡아 두며, 형식 오류, 만료, 취소, 시스템 오류는 횟수에 들어가지 않습니다</p>
+    {% else %}
+      <p class="notice error">모든 마감이 지났습니다<br>지금 제출하면 접수만 되고 채점되지 않습니다</p>
+    {% endif %}
+    {% if accepting %}
+    <form method="post" action="{% url 'submissions:start' competition.pk project.pk %}">
+      {% csrf_token %}
+      {{ start_form.as_div }}
+      <button type="submit">제출 시작</button>
+    </form>
+    <p class="helptext">'제출 시작'을 누른 시각이 마감 판정 기준입니다<br>마감 전에 시작했다면 업로드가 마감 뒤에 끝나도 그 마감으로 채점합니다</p>
+    {% else %}
+    <p class="notice">아직 제출을 받지 않습니다</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>내 제출</h2></div>
+    {% include "_live.html" with mode="alert" ids=live_ids watch="score" %}
+    {% if my_submissions %}
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>시작 시각</th><th>구간</th><th>상태</th><th class="num">점수</th><th>검증</th></tr></thead>
+      <tbody>
+      {% for s in my_submissions %}
+        <tr>
+          <td>{{ s.started_at|date:"m-d H:i:s" }}</td>
+          <td>{% if s.deadline %}{{ s.deadline.due_at|date:"m-d H:i" }} 마감{% else %}마감 후{% endif %}</td>
+          <td>
+            {% if s.status == "uploading" %}<a href="{% url 'submissions:upload' competition.pk project.pk s.pk %}">{{ s.get_status_display }} (이어서 올리기)</a>
+            {% else %}{{ s.get_status_display }}{% endif %}
+            {% if s.error_message %}<span class="sub">{{ s.error_message|nodot }}</span>{% endif %}
+          </td>
+          <td class="num">{{ s.score_text }}</td>
+          <td>{% if s.status == "scored" %}{{ s.public_review_label }}{% if s.rejection_reason %}<span class="sub">사유: {{ s.rejection_reason }}</span>{% endif %}{% else %}-{% endif %}
+            {% for n in s.method_notes %}<span class="sub"><span class="lv lv-{% if n.level == 'warn' %}warn{% else %}unknown{% endif %}">{% if n.level == 'warn' %}확인 필요{% else %}참고{% endif %}</span> {{ n.label }}: {{ n.text|nodot }}</span>{% endfor %}
+            {% if s.method_cv %}<span class="sub">{{ s.method_cv }}</span>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+    <p class="empty">아직 제출이 없습니다</p>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  <section class="card">
+    <h2>노트북 재실행 안내</h2>
+    <p class="helptext">채점이 끝나면 제출한 노트북을 격리된 환경에서 처음부터 다시 실행해, 나온 예측이 제출 CSV와 같은지 확인합니다(V1)<br>
+      같지 않거나 실행되지 않아도 바로 부적합이 되지는 않고, 담당 관리자가 검토합니다</p>
+    <ul class="helptext">
+      <li>현재 폴더의 <code>train.csv</code>(공개 학습 데이터)와 <code>test.csv</code>(공개 테스트 feature)를 읽으세요</li>
+      <li><code>{{ project.id_column }}</code>, <code>{{ project.target_column }}</code> 두 컬럼의 CSV(예: <code>submission.csv</code>)를 저장하세요</li>
+      <li><strong>무작위 시드를 고정하세요</strong>(예: <code>RandomForestClassifier(random_state=0)</code>, <code>train_test_split(..., random_state=0)</code>) 고정하지 않으면 다시 실행할 때 결과가 달라져 '불일치'로 나올 수 있습니다</li>
+      <li>인터넷은 막혀 있고, 셀 하나 2분, 전체 4분, 메모리 2GB 안에서 실행됩니다</li>
+      <li>실행 환경: Python 3.12, numpy 2.5.5, pandas 3.1.1, scikit-learn 1.9.1, joblib 1.6.0 (PyTorch, TensorFlow 없음)</li>
+      <li>모델 파일이 sklearn, joblib(.pkl, .joblib)이면 불러와서 test.csv로 다시 예측해 비교합니다(V5)</li>
+      <li>전처리 과정은 가능하면 Pipeline에 포함하여 모델과 함께 저장해 주세요. 모델 파일만으로 같은 예측 과정을 재현할 수 있어야 합니다</li>
+      <li>교차검증 평균을 <code>Mean: 값</code>(과제 PDF의 display_scores 형식) 또는 <code>CV_{{ project.metric|upper }}_MEAN=값</code>으로 출력하면, 채점 뒤 서버 점수와 비교해 알려 줍니다</li>
+    </ul>
+  </section>
+
+  {% if is_staff %}
+  <section class="card">
+    <h2>정답 파일 <span class="lv lv-unknown">관리자만</span></h2>
+    {% if files.answer %}
+      <dl class="kv">
+        <dt>행 수</dt><dd>{{ files.answer.rows }}행</dd>
+        <dt>등록</dt><dd>{{ files.answer.uploaded_at|date:"Y-m-d H:i" }}</dd>
+        <dt>SHA-256</dt><dd><code>{{ files.answer.sha256|slice:":12" }}…</code></dd>
+      </dl>
+      <p><a class="btn secondary small" href="{% url 'competitions:file_download' competition.pk project.pk 'answer' %}">정답 파일 받기</a>
+        <span class="helptext">다운로드는 감사 로그에 기록됩니다</span></p>
+    {% else %}
+      <p class="empty">정답 파일이 아직 없습니다</p>
+    {% endif %}
+
+    {% if upload_form %}
+    <h3>파일 등록, 교체</h3>
+    <form method="post" action="{% url 'competitions:file_upload' competition.pk project.pk %}" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      {{ upload_form.as_div }}
+      <button type="submit">등록</button>
+    </form>
+    <ul class="helptext">
+      <li>UTF-8 CSV만 받습니다</li>
+      <li>정답 파일을 등록하면 행 수와 허용 값이 자동으로 계산됩니다</li>
+      <li>공개 테스트 feature에 정답 컬럼이 들어 있으면 거부합니다</li>
+    </ul>
+    {% endif %}
+  </section>
+  {% endif %}
+</div>
+
+<aside>
+  <section class="card">
+    <h2>채점 규칙</h2>
+    <dl class="kv">
+      <dt>평가지표</dt><dd>{{ project.get_metric_display }}</dd>
+      <dt>점수 방향</dt><dd>{{ project.get_direction_display }}</dd>
+      <dt>CSV 컬럼</dt><dd><code>{{ project.id_column }}</code>, <code>{{ project.target_column }}</code></dd>
+      <dt>행 수</dt><dd>{% if project.expected_rows %}{{ project.expected_rows }}행{% else %}정답 등록 후 표시{% endif %}</dd>
+      {% if is_staff and files.train.duplicate_rows is not None %}
+      <dt>학습 데이터 중복</dt><dd>특성이 같은 행 {{ files.train.duplicate_rows }}개{% if files.train.duplicate_percent is not None %} ({{ files.train.duplicate_percent }}%){% endif %}</dd>
+      {% endif %}
+      <dt>허용 값</dt><dd>
+        {% if project.is_classification %}
+          {% if project.allowed_labels %}{{ project.allowed_labels|join:", " }}{% else %}정답 등록 후 표시{% endif %}
+        {% else %}숫자(실수){% endif %}</dd>
+    </dl>
+  </section>
+
+  <section class="card">
+    <h2>마감일</h2>
+    {% if deadlines %}
+    <table>
+      <tbody>
+      {% for d in deadlines %}
+        <tr>
+          <td>{{ forloop.counter }}차<span class="sub">{{ d.max_submissions }}회</span></td>
+          <td>{{ d.due_at|date:"m-d H:i" }}<span class="sub">{% if d == current %}<strong>현재 구간</strong>{% elif d.due_at <= now %}지남{% else %}예정{% endif %}</span></td>
+          {% if user.is_admin2 %}
+          <td class="num">
+            <form method="post" action="{% url 'competitions:deadline_delete' competition.pk project.pk d.pk %}">
+              {% csrf_token %}<button type="submit" class="danger small">삭제</button>
+            </form>
+          </td>
+          {% endif %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% if not current %}<p class="notice error">모든 마감이 지났습니다</p>{% endif %}
+    {% else %}
+    <p class="empty">등록된 마감일이 없습니다</p>
+    {% endif %}
+    <p class="helptext">마감 시각 <strong>전에 시작한</strong> 업로드까지 그 마감에 포함되고, 마감 후에는 접수만 하고 채점하지 않습니다</p>
+
+    {% if deadline_form %}
+    <h3>마감일 추가</h3>
+    <form method="post" action="{% url 'competitions:deadline_add' competition.pk project.pk %}" novalidate>
+      {% csrf_token %}
+      {{ deadline_form.as_div }}
+      <button type="submit" class="secondary">추가</button>
+    </form>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2>자료</h2>
+    {% if files.train or files.test_features %}
+    <ul class="plain">
+      {% if files.train %}<li><a href="{% url 'competitions:file_download' competition.pk project.pk 'train' %}">공개 학습 데이터</a> <span class="helptext">{{ files.train.rows }}행</span></li>{% endif %}
+      {% if files.test_features %}
+        <li><a href="{% url 'competitions:file_download' competition.pk project.pk 'test_features' %}">공개 테스트 feature</a> <span class="helptext">{{ files.test_features.rows }}행</span></li>
+        <li><a href="{% url 'competitions:sample_csv' competition.pk project.pk %}">제출 견본 CSV</a> <span class="helptext">형식 확인용</span></li>
+      {% endif %}
+    </ul>
+    {% else %}
+    <p class="empty">아직 공개된 자료가 없습니다</p>
+    {% endif %}
+  </section>
+</aside>
+</div>
+{% endblock %}

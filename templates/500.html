@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{# 오류 화면: 원인·경로·코드 같은 내부 정보는 보여 주지 않는다(DEBUG=False일 때 쓰임) [RFP 7쪽] #}
+{% block title %}서버 오류{% endblock %}
+{% block content %}
+<h1>서버 오류</h1>
+<p>잠시 뒤 다시 시도해 주세요<br>문제가 계속되면 운영진에게 알려 주세요<br>제출 중이었다면 제출 횟수는 차감되지 않습니다</p>
+<p><a class="btn" href="{% url 'home' %}">처음 화면으로</a></p>
+{% endblock %}

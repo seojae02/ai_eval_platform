@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% load ui static %}
+{% block title %}{{ project.name }} 검토{% endblock %}
+{% block content %}
+{% include "_project_tabs.html" with active="review" staff=True %}
+{% include "_live.html" with mode="alert" ids=live_ids watch="verify" %}
+
+{% if pending_rows is not None %}
+<section class="card">
+  <div class="card-head"><h2>승인 대기</h2><span class="lv {% if pending_rows %}lv-warn{% else %}lv-unknown{% endif %}">{{ pending_rows|length }}건</span></div>
+  {% if pending_rows %}
+  <form method="post" action="{% url 'submissions:review_bulk_approve' competition.pk project.pk %}">
+  {% csrf_token %}
+  <div class="table-wrap">
+  <table class="pending">
+    <thead><tr>
+      <th><input type="checkbox" id="pick-all" title="일괄 가능한 것 모두 선택" aria-label="모두 선택"></th>
+      <th>번호</th><th>참여자</th><th class="num">점수</th><th>관리자1 제안</th><th>검증 리포트</th><th>문제 된 검사</th><th>방법 점검</th><th>관리자1 사유</th><th></th>
+    </tr></thead>
+    <tbody>
+    {% for row in pending_rows %}{% with s=row.submission %}
+      <tr>
+        <td>{% if row.bulk_ok %}<input type="checkbox" name="pick" value="{{ s.pk }}:{{ row.seen|default_if_none:'' }}" class="pick" aria-label="#{{ s.pk }} 선택">{% else %}<span class="helptext" title="{{ row.block }}">-</span>{% endif %}</td>
+        <td>#{{ s.pk }}</td>
+        <td>{{ s.member.user.real_name }}</td>
+        <td class="num">{{ s.score_text }}</td>
+        <td><span class="lv {% if s.review_status == 'proposed_reject' %}lv-bad{% else %}lv-ok{% endif %}">{{ s.get_review_status_display }}</span></td>
+        <td>{% if row.report %}<span class="lv lv-{{ row.report.level }}">{{ row.report.get_level_display }}</span>{% else %}<span class="lv lv-unknown">검증 전</span>{% endif %}</td>
+        <td>{% for key, title, level, summary in row.problems %}<span class="sub">{{ title|slice:":2" }}: {{ summary|nodot }}</span>{% empty %}-{% endfor %}</td>
+        <td>{% if row.method and row.method.level != "ok" %}<span class="lv lv-{{ row.method.level }}">{% if row.method.level == "warn" %}주의{% else %}판정 불가{% endif %}</span><span class="sub">{{ row.method.summary|nodot }}</span>{% elif row.method %}<span class="sub">{{ row.method.summary|nodot }}</span>{% else %}-{% endif %}</td>
+        <td>{% if row.proposal_reason %}<span class="sub">{{ row.proposal_reason|truncatechars:120 }}</span>{% else %}-{% endif %}</td>
+        <td class="num">{% if not row.bulk_ok %}<span class="sub">{{ row.block }}</span>{% endif %}<a class="btn small" href="{% url 'submissions:review_detail' competition.pk project.pk s.pk %}">결정하기</a></td>
+      </tr>
+    {% endwith %}{% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <p><button type="submit">선택한 제출 적합 확정</button></p>
+  </form>
+  <ul class="helptext">
+    <li>일괄 확정은 '적합 제안'이면서 검증 리포트가 '문제 없음'이거나, '주의'의 이유가 V3 오답 일치, V4 셸 명령·셀 실행 순서뿐인 것만 고를 수 있습니다</li>
+    <li>V1·V5 주의(CSV 손수정일 수 있음), 의심, 판정 불가, 부적합 제안은 '결정하기'에서 한 건씩 확인합니다</li>
+    <li>누르는 사이 관리자1이 제안을 바꾼 건은 건너뛰고 알려 드리며, 이력에는 '일괄 승인'으로 남습니다</li>
+  </ul>
+  {% else %}
+  <p class="empty">관리자1의 제안이 없습니다</p>
+  {% endif %}
+</section>
+{% endif %}
+
+<section class="card">
+  <div class="card-head"><h2>검토 목록</h2><span class="lv lv-unknown">{{ entries|length }}건</span></div>
+  {% if entries %}
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>순위</th><th>참여자</th><th class="num">점수</th><th>검증 리포트</th><th>검토 상태</th><th></th></tr></thead>
+    <tbody>
+    {% for e in entries %}
+      <tr>
+        <td class="rank">{{ e.rank }}</td>
+        <td>{{ e.member.user.real_name }} <span class="sub">{{ e.member.user.username }}, {{ e.member.alias }}</span></td>
+        <td class="num">{{ e.score_text }}</td>
+        <td>{% with r=e.report %}{% if r %}<span class="lv lv-{{ r.level }}">{{ r.get_level_display }}</span>{% else %}<span class="lv lv-unknown">검증 전</span>{% endif %}{% endwith %}</td>
+        <td>{{ e.submission.get_review_status_display }}</td>
+        <td class="num"><a class="btn secondary small" href="{% url 'submissions:review_detail' competition.pk project.pk e.submission.pk %}">검토하기</a></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p class="empty">검토할 기록이 없습니다</p>
+  {% endif %}
+</section>
+<ul class="helptext">
+  <li>참여자마다 지금의 대표 기록 중 아직 확정되지 않은 것입니다</li>
+  <li>리더보드 위쪽부터, 같은 참여자의 같은 점수는 최신 제출부터 검토합니다</li>
+  <li>부적합이 확정되면 그 참여자의 다음 기록이 여기에 올라옵니다</li>
+</ul>
+<script src="{% static 'js/bulk.js' %}" defer></script>
+{% endblock %}

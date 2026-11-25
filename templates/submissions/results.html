@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }} 최종 성적{% endblock %}
+{% block content %}
+{% include "_project_tabs.html" with active="results" staff=True %}
+
+{% if summary.final %}
+<p class="notice ok"><strong>최종 확정</strong> 리더보드의 모든 대표 기록({{ summary.total }}명)이 '적합(확정)'이며, 참여자 리더보드에도 '최종 확정'으로 표시됩니다</p>
+{% endif %}
+<div class="stats">
+  <div class="stat"><div class="label">확정</div><div class="value">{{ summary.confirmed }}<small>명</small></div></div>
+  <div class="stat"><div class="label">검토 중</div><div class="value">{{ summary.in_review }}<small>명</small></div></div>
+  <div class="stat"><div class="label">미검토</div><div class="value">{{ summary.not_reviewed }}<small>명</small></div></div>
+  <div class="stat"><div class="label">리더보드에 없음</div><div class="value">{{ summary.missing }}<small>명</small></div></div>
+</div>
+
+<section class="card">
+  <div class="card-head">
+    <h2>참여자별 대표 기록</h2>
+    <div class="actions">
+      {% if not summary.final and summary.total %}<a class="btn secondary small" href="{% url 'submissions:review_queue' competition.pk project.pk %}">남은 기록 검토하기</a>{% endif %}
+      <a class="btn small" href="{% url 'submissions:results_csv' competition.pk project.pk %}">성적표 CSV 다운로드</a>
+    </div>
+  </div>
+  {% if not summary.final %}<p class="helptext">미검토 {{ summary.not_reviewed }}명, 검토 중 {{ summary.in_review }}명이 남았습니다</p>{% endif %}
+  {% if rows %}
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>순위</th><th>실명</th><th>아이디</th><th>별칭</th><th class="num">점수</th><th>확정 여부</th><th>확정한 관리자</th><th></th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td class="rank">{{ r.rank }}</td>
+        <td>{{ r.member.user.real_name }}</td>
+        <td>{{ r.member.user.username }}</td>
+        <td>{{ r.member.alias }}</td>
+        <td class="num"><strong>{{ r.score_text }}</strong></td>
+        <td><span class="lv {% if r.state == '확정' %}lv-ok{% elif r.state == '검토 중' %}lv-warn{% else %}lv-unknown{% endif %}">{{ r.state }}</span>
+          {% if r.state == '검토 중' %}<span class="sub">{{ r.submission.get_review_status_display }}</span>{% endif %}</td>
+        <td>{% if r.decision %}{{ r.decision.actor.real_name }}<span class="sub">{{ r.decision.created_at|date:"m/d H:i" }}</span>{% else %}-{% endif %}</td>
+        <td class="num"><a class="btn secondary small" href="{% url 'submissions:review_detail' competition.pk project.pk r.submission.pk %}">기록 보기</a></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p class="empty">아직 채점된 기록이 없습니다</p>
+  {% endif %}
+  <p class="helptext">리더보드와 같은 기준입니다<br>참여자마다 부적합(확정)이 아닌 기록 중 가장 좋은 점수 1개<br>CSV는 엑셀에서 바로 열리며 실명이 들어 있고, 다운로드는 감사 로그에 기록됩니다</p>
+</section>
+
+{% if missing %}
+<section class="card">
+  <h2>리더보드에 없는 참여자</h2>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>실명</th><th>아이디</th><th>이유</th></tr></thead>
+    <tbody>
+    {% for m, reason in missing %}
+      <tr><td>{{ m.user.real_name }}</td><td>{{ m.user.username }}</td><td>{{ reason }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

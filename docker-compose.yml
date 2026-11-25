@@ -1,0 +1,86 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      args:
+        INSTALL_DEV: "1"   # 개발용: 테스트 도구 포함
+    image: ai-eval-platform-app   # worker가 같은 이미지를 쓴다
+    # 시작할 때 마이그레이션을 먼저 적용한다(처음 실행·git pull 뒤에 따로 migrate 하지 않아도 되게)
+    command: sh -c "python manage.py migrate --noinput && python manage.py runserver 0.0.0.0:8000"
+    env_file: .env
+    environment:
+      DB_HOST: db
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # 채점 worker (D2). 같은 코드·DB·storage를 쓰고, 포트를 열지 않는다(외부 요청을 받지 않음).
+  # 코드를 고친 뒤에는 자동으로 다시 읽지 않으므로 `docker compose restart worker`.
+  worker:
+    build:
+      context: .
+      args:
+        INSTALL_DEV: "1"
+    image: ai-eval-platform-app
+    command: python manage.py run_worker
+    env_file: .env
+    environment:
+      DB_HOST: db
+      SANDBOX_DOCKER_URL: tcp://docker-proxy:2375   # worker만 샌드박스를 띄울 수 있다(web에는 이 값이 없다)
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+      docker-proxy:
+        condition: service_started
+    networks: [default, sandbox-control]
+    restart: unless-stopped           # 죽으면 다시 뜬다. 하던 작업은 recover_stale이 되돌린다
+    stop_grace_period: 30s            # 종료 신호 후 하던 작업을 끝낼 시간
+
+  # Docker 소켓 = 호스트 root 권한과 같다(PLAN 8-2). 그래서 worker도 소켓을 직접 갖지 않고 이 프록시만 거친다.
+  # 열어 둔 API: /containers (생성·파일 넣기·시작·상태·로그·종료·삭제)와 쓰기 요청(POST)뿐.
+  # 이미지·네트워크·볼륨·exec 실행·빌드·시스템 정보 API는 막힌다.
+  # sandbox-control 네트워크는 내부 전용이고 web은 여기에 없다 → web은 프록시에도 닿지 않는다.
+  docker-proxy:
+    image: tecnativa/docker-socket-proxy@sha256:be1ac64f33bd82043beb504822a17ba6b71668ea1ad7cf51a9a01d27bb7ab047
+    environment:
+      CONTAINERS: 1
+      POST: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [sandbox-control]
+    restart: unless-stopped
+
+  # 샌드박스 실행 이미지를 빌드만 하는 서비스. `docker compose build`가 이 이미지도 만든다.
+  # up 하면 한 줄 출력하고 바로 끝난다(정상). 실제 실행은 worker가 제출마다 새 컨테이너로 한다.
+  sandbox-image:
+    build: ./sandbox
+    image: ai-eval-sandbox
+    command: ["python", "-c", "print('sandbox image ready')"]
+    network_mode: none
+    restart: "no"
+
+networks:
+  sandbox-control:
+    internal: true   # 바깥(인터넷)으로 나가는 길이 없는 내부 전용 네트워크
+
+volumes:
+  db-data:

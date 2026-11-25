@@ -1,5 +1,11 @@
 # AI 모델 성능평가 자동화 플랫폼
 
+> **Linux에서 실행할 때:** 컨테이너는 uid 1000으로 저장소 폴더에 파일을 씁니다. `id -u` 결과가 1000이 아니면 `./dev.sh start` 전에 저장소 폴더에서 아래 명령을 한 번 실행하세요. 그러지 않으면 제출 파일을 저장하지 못할 수 있습니다. Windows·macOS의 Docker Desktop은 해당하지 않습니다.
+>
+> ```bash
+> mkdir -p storage && sudo chown 1000:1000 storage
+> ```
+
 ## 예시 계정 (로컬 시연용)
 
 `./dev.sh start` → `./dev.sh demo` 후 <http://127.0.0.1:8000> 에서 로그인합니다. **비밀번호는 아이디와 같습니다.**
